@@ -3,11 +3,11 @@ import { useState, useRef, useCallback } from 'react';
 import api from '../api';
 
 export default function ImageDetector() {
-  const [preview, setPreview]   = useState(null);
-  const [file, setFile]         = useState(null);
-  const [result, setResult]     = useState(null);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState('');
+  const [preview, setPreview] = useState(null);
+  const [file, setFile] = useState(null);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef(null);
 
@@ -32,9 +32,9 @@ export default function ImageDetector() {
 
   const handleFileChange = (e) => processFile(e.target.files?.[0]);
 
-  const handleDragOver  = (e) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
-  const handleDrop      = (e) => {
+  const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
     processFile(e.dataTransfer.files?.[0]);
@@ -56,16 +56,24 @@ export default function ImageDetector() {
       });
 
       // Normalise to a stable shape for the rendering layer
-      const realProb  = data.probabilities.find((p) => p.classId === '0')?.probability ?? 0;
-      const fakeProb  = data.probabilities.find((p) => p.classId === '1')?.probability ?? 0;
+      const predictions = data.predictions.map((pred) => {
+        const realProb = pred.probabilities.find((p) => p.classId === '0')?.probability ?? 0;
+        const fakeProb = pred.probabilities.find((p) => p.classId === '1')?.probability ?? 0;
+        return {
+          modelName: pred.modelName,
+          isAI: pred.predictedClassId === '1',
+          confidence: (pred.confidence * 100).toFixed(1),
+          probabilities: {
+            real: (realProb * 100).toFixed(1),
+            fake: (fakeProb * 100).toFixed(1),
+          },
+          modelMetadata: pred.modelMetadata,
+        };
+      });
+
       setResult({
-        isAI:       data.predictedClassId === '1',
-        confidence: (data.confidence * 100).toFixed(1),
-        probabilities: {
-          real: (realProb * 100).toFixed(1),
-          fake: (fakeProb * 100).toFixed(1),
-        },
-        model: data.model,
+        predictions,
+        summary: data.summary,
       });
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'An unexpected error occurred.';
@@ -88,11 +96,10 @@ export default function ImageDetector() {
       {/* Drop Zone */}
       {!preview ? (
         <div
-          className={`mt-4 border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all text-center ${
-            isDragging
-              ? 'border-blue-500 bg-blue-50 scale-[1.01]'
-              : 'border-gray-300 bg-neutral-100 hover:border-blue-400 hover:bg-blue-50/50'
-          }`}
+          className={`mt-4 border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all text-center ${isDragging
+            ? 'border-blue-500 bg-blue-50 scale-[1.01]'
+            : 'border-gray-300 bg-neutral-100 hover:border-blue-400 hover:bg-blue-50/50'
+            }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -136,11 +143,10 @@ export default function ImageDetector() {
             <button
               onClick={handleAnalyze}
               disabled={loading}
-              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
-                loading
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-[0.99]'
-              }`}
+              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${loading
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-500 text-white hover:bg-blue-600 active:scale-[0.99]'
+                }`}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -165,40 +171,63 @@ export default function ImageDetector() {
       {/* Result */}
       {result && !loading && (
         <div className="mt-4 p-5 rounded-2xl border-2 border-gray-200 bg-neutral-100 space-y-4">
-          <h3 className="text-lg font-bold text-gray-800">Analysis Result</h3>
-
-          {/* Verdict badge */}
-          <div
-            className={`flex items-center justify-between p-4 rounded-xl border-2 ${
-              result.isAI ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
-            }`}
-          >
-            <div>
-              <div className="text-xs font-semibold tracking-widest uppercase mb-1 text-gray-500">
-                Verdict
-              </div>
-              <div className={`text-2xl font-bold ${result.isAI ? 'text-red-600' : 'text-green-600'}`}>
-                {result.isAI ? '⚠️ AI-Generated' : '✅ Real Image'}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className={`text-3xl font-extrabold ${result.isAI ? 'text-red-500' : 'text-green-500'}`}>
-                {result.confidence}%
-              </div>
-              <div className="text-xs text-gray-500">confidence</div>
-            </div>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-lg font-bold text-gray-800">Analysis Results</h3>
+            {result.summary && (
+              <span className="text-xs bg-gray-200 text-gray-600 py-1 px-2 rounded-lg font-medium">
+                {result.summary.totalModels} Model{result.summary.totalModels > 1 ? 's' : ''} Used
+              </span>
+            )}
           </div>
 
-          {/* Probability bars */}
-          <div className="space-y-2">
-            <ProbBar label="Real"         value={parseFloat(result.probabilities.real)} color="green" />
-            <ProbBar label="AI-Generated" value={parseFloat(result.probabilities.fake)} color="red"   />
+          <div className="space-y-6">
+            {result.predictions.map((pred, idx) => (
+              <div key={idx} className="space-y-4 p-5 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                  <h4 className="font-bold text-gray-700 capitalize flex items-center gap-2">
+                    <span className="text-xl">🤖</span> {pred.modelName}
+                  </h4>
+                  {pred.modelMetadata && (
+                    <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-md max-w-[50%] truncate" title={pred.modelMetadata.name}>
+                      {pred.modelMetadata.name} ({pred.modelMetadata.imageSize}px)
+                    </span>
+                  )}
+                </div>
+
+                {/* Verdict badge */}
+                <div
+                  className={`flex items-center justify-between p-4 rounded-xl border-2 ${pred.isAI ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
+                    }`}
+                >
+                  <div>
+                    <div className="text-xs font-semibold tracking-widest uppercase mb-1 text-gray-500">
+                      Verdict
+                    </div>
+                    <div className={`text-2xl font-bold ${pred.isAI ? 'text-red-600' : 'text-green-600'}`}>
+                      {pred.isAI ? '⚠️ AI-Generated' : '✅ Real Image'}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-3xl font-extrabold ${pred.isAI ? 'text-red-500' : 'text-green-500'}`}>
+                      {pred.confidence}%
+                    </div>
+                    <div className="text-xs text-gray-500">confidence</div>
+                  </div>
+                </div>
+
+                {/* Probability bars */}
+                <div className="space-y-2">
+                  <ProbBar label="Real" value={parseFloat(pred.probabilities.real)} color="green" />
+                  <ProbBar label="AI-Generated" value={parseFloat(pred.probabilities.fake)} color="red" />
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Analyze another */}
           <button
             onClick={handleClear}
-            className="w-full py-2 rounded-xl border-2 border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
+            className="w-full py-3 mt-4 rounded-xl border-2 border-gray-300 text-gray-600 text-sm font-bold hover:bg-gray-200 transition-colors"
           >
             Analyze Another Image
           </button>
@@ -211,7 +240,7 @@ export default function ImageDetector() {
 function ProbBar({ label, value, color }) {
   const colors = {
     green: { bar: 'bg-green-500', text: 'text-green-700', bg: 'bg-green-100' },
-    red:   { bar: 'bg-red-500',   text: 'text-red-700',   bg: 'bg-red-100'   },
+    red: { bar: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-100' },
   };
   const c = colors[color];
 
