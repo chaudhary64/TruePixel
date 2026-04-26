@@ -19,8 +19,8 @@ export default function App() {
         </p>
 
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700">
-          <span className="font-semibold">Powered by SigLIP + LoRA</span> — our custom-trained vision
-          model analyzes images at 512×512 resolution to detect AI-generated content.
+          <span className="font-semibold">Powered by multiple vision models</span> — our model pipeline
+          analyzes images at 512×512 resolution to detect AI-generated content.
         </div>
 
         <ImageDetector />

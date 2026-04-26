@@ -18,7 +18,7 @@
 
 ## ✨ Overview
 
-**TruePixel** is a full-stack web application that uses a fine-tuned **SigLIP + LoRA** vision model to classify images as either *real* (human-captured) or *AI-generated*. Upload any image and get a verdict with confidence scores in seconds.
+**TruePixel** is a full-stack web application that uses a configurable **vision model pipeline** to classify images as either *real* (human-captured) or *AI-generated*. Upload any image and get a verdict with confidence scores in seconds.
 
 The app is split into two parts:
 
@@ -36,7 +36,7 @@ The app is split into two parts:
 - 📊 **Confidence scores** with animated probability bars
 - ✅ / ⚠️ **Clear verdicts** — *Real* or *AI-Generated*
 - 🔒 **Client-side file validation** — type & size checks before upload
-- 💡 **Powered by SigLIP + LoRA** — fine-tuned at 512×512 resolution
+- 💡 **Powered by multiple vision models** — configurable inference at 512×512 resolution
 - 🎨 **Custom typography** — Bruno Ace + Tektur from Google Fonts
 - 🌐 **Vite proxy** — zero CORS friction in development
 
@@ -56,7 +56,7 @@ The app is split into two parts:
 │          │                  │       │           │                  │
 │  Vite Proxy (/api → :3000)  │       │  ┌────────────────────────┐  │
 └──────────────────────────── ┘       │  │  fake_detector.onnx    │  │
-                                      │  │  (SigLIP + LoRA)       │  │
+                                      │  │  (Model Pipeline)      │  │
                                       │  └────────────────────────┘  │
                                       └──────────────────────────────┘
 ```
@@ -185,7 +185,7 @@ curl -X POST http://localhost:3000/predict \
     { "classId": "1", "label": "AI-Generated (Fake)", "probability": 0.9821 }
   ],
   "model": {
-    "name": "google/siglip-base-patch16-512",
+    "name": "active-vision-model",
     "imageSize": 512
   }
 }
@@ -205,8 +205,8 @@ curl -X POST http://localhost:3000/predict \
 
 | Property | Value |
 |---|---|
-| Base model | `google/siglip-base-patch16-512` |
-| Fine-tuning | LoRA (Low-Rank Adaptation) |
+| Model strategy | Configurable / swappable models |
+| Fine-tuning | Depends on selected model |
 | Input resolution | 512 × 512 |
 | Runtime | ONNX Runtime (Node.js) |
 | Classes | `Real` · `AI-Generated (Fake)` |
@@ -257,6 +257,6 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
 
 <div align="center">
 
-Built with ❤️ using **SigLIP · LoRA · React · Vite · ONNX Runtime**
+Built with ❤️ using **Vision Models · React · Vite · ONNX Runtime**
 
 </div>
